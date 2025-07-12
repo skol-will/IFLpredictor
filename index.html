@@ -1,485 +1,793 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>IFL Playoff Predictor 2025/26</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Rajdhani:wght@500&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Rajdhani', sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #111;
-      color: #fff;
-      text-align: center;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IFL Playoff Predictor 2025/26</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Rajdhani:wght@500&display=swap" rel="stylesheet" />
+<style>
+  body {
+    font-family: 'Rajdhani', sans-serif;
+    margin: 0; padding: 0;
+    background: #111;
+    color: #fff;
+    text-align: center;
+  }
+  h1 img {
+    vertical-align: middle;
+    height: 40px;
+    margin-right: 10px;
+  }
+  h1, h2, h3 {
+    margin: 20px 0 12px;
+  }
 
-    h1 img {
-      vertical-align: middle;
-      height: 40px;
-      margin-right: 10px;
-    }
+  /* ======== Stage container styles ======== */
+  #stage1, #stage2, #stage3 {
+    padding: 20px;
+    max-width: 960px;
+    margin: 0 auto 30px;
+  }
+  #stage2, #stage3 {
+    display: none;
+  }
 
-    h1, h2 {
-      margin: 20px 0;
-    }
+  /* ======== Division & Wildcard team card styles ======== */
+  .division-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 1.3rem;
+    margin-bottom: 12px;
+  }
+  .division-title img {
+    height: 30px;
+  }
+  .team-list, #wildcard-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+  .team-card {
+    position: relative;
+    width: 144px;
+    height: 40px;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+    box-shadow: 0 0 6px rgba(0,0,0,0.4);
+    user-select: none;
+    background: #222;
+  }
+  .team-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .team-card span {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    text-shadow: 0 0 4px #000;
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.9rem;
+    pointer-events: none;
+  }
+  .team-card.selected {
+    outline: 3px solid #00BFFF;
+    transform: scale(1.05);
+    z-index: 2;
+  }
+  .team-card.disabled {
+    display: none !important;
+  }
 
-    .division-title {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      font-size: 1.2rem;
-      margin-bottom: 10px;
-    }
+  /* ======== Buttons ======== */
+  .button-row {
+    margin: 30px 0;
+    text-align: center;
+  }
+  button {
+    background: #00BFFF;
+    color: white;
+    border: none;
+    padding: 10px 22px;
+    margin: 10px 8px;
+    font-size: 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  button:hover:not(:disabled) {
+    background: #0099cc;
+  }
+  button:disabled {
+    background: #444;
+    cursor: not-allowed;
+  }
 
-    .division-title img {
-      height: 30px;
-    }
+  /* ======== Bracket styles ======== */
+  .bracket-header {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+    gap: 40px;
+  }
+  .bracket-header div {
+    width: 184px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .bracket-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    position: relative;
+    flex-wrap: wrap;
+  }
+  .brackets {
+    display: flex;
+    gap: 40px;
+  }
+  .round {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .matchup {
+    margin: 20px 0;
+    position: relative;
+    width: 144px;
+  }
 
-    .team-list, #wildcard-list {
-      display: flex;
+  /* Team card for bracket */
+  .team-card.bracket {
+    cursor: pointer;
+    position: relative;
+    width: 144px;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 6px rgba(0,0,0,0.5);
+    transition: transform 0.2s, outline 0.2s;
+  }
+  .team-card.bracket img {
+    position: absolute;
+    top: 0; left: 0;
+    width: 144px;
+    height: 40px;
+    object-fit: cover;
+    z-index: 1;
+  }
+  .team-card.bracket span {
+    position: absolute;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    font-size: 0.9rem;
+    color: #fff;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 0 4px #000;
+    background: rgba(0,0,0,0.3);
+    pointer-events: none;
+  }
+  .team-card.bracket.selected {
+    outline: 3px solid #00BFFF;
+    transform: scale(1.05);
+  }
+
+  .champion-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-left: 40px;
+  }
+  .champion-card {
+    width: 144px;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 10px;
+    box-shadow: 0 0 8px gold;
+  }
+  .champion-card img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    top: 0; left: 0;
+    z-index: 1;
+  }
+  .champion-card span {
+    position: absolute;
+    top: 50%;
+    left: 0; right: 0;
+    transform: translateY(-50%);
+    font-weight: bold;
+    color: black;
+    background: rgba(255,215,0,0.6);
+    text-shadow: 0 0 3px #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .bowl-logo {
+    width: 100px;
+    margin-top: 10px;
+  }
+
+  /* SVG connector container - absolutely positioned */
+  #svg-container {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Responsive tweaks */
+  @media (max-width: 800px) {
+    .bracket-header {
       flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
+      gap: 20px;
     }
-
-    .team-card {
-      position: relative;
-      width: 144px;
-      height: 40px;
-      border-radius: 6px;
-      overflow: hidden;
-      cursor: pointer;
-      transition: transform 0.2s, opacity 0.2s;
-      box-shadow: 0 0 6px rgba(0,0,0,0.4);
-    }
-
-    .team-card img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .team-card span {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      transform: translateY(-50%);
-      text-shadow: 0 0 4px #000;
-      color: #fff;
-      font-weight: bold;
-      font-size: 0.9rem;
-    }
-
-    .team-card.selected {
-      outline: 3px solid #00BFFF;
-      transform: scale(1.05);
-    }
-
-    .team-card.disabled {
-      display: none !important;
-    }
-
-    .button-row {
-      margin: 30px 0;
-    }
-
-    button {
-      background: #00BFFF;
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      margin: 10px;
-      font-size: 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    button:hover {
-      background: #0099cc;
-    }
-
-    button:disabled {
-      background: #444;
-      cursor: not-allowed;
-    }
-
-    #stage2, #stage3 {
-      display: none;
-      padding: 20px;
-    }
-
-    .bracket-container {
-      display: flex;
-      flex-direction: row;
-      align-items: flex-start;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
     .brackets {
-      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
       justify-content: center;
+    }
+    .champion-section {
+      margin-left: 0;
       margin-top: 20px;
     }
-
-    .round {
-      margin: 0 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      position: relative;
-    }
-
-    .matchup {
-      margin: 20px 0;
-      position: relative;
-    }
-
-    .matchup::before, .matchup::after {
-      content: '';
-      position: absolute;
-      width: 20px;
-      height: 2px;
-      background: #888;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-
-    .matchup::before {
-      left: -20px;
-    }
-
-    .matchup::after {
-      right: -20px;
-    }
-
-    .champion-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-left: 40px;
-    }
-
-    .champion-card {
-      width: 144px;
-      height: 40px;
-      border-radius: 6px;
-      overflow: hidden;
-      position: relative;
-      margin-bottom: 10px;
-    }
-
-    .champion-card img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .champion-card span {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      transform: translateY(-50%);
-      text-shadow: 0 0 4px #000;
-      color: black;
-      font-weight: bold;
-    }
-
-    .bowl-logo {
-      width: 100px;
-      margin-top: 10px;
-    }
-
-    .bracket-header {
-      display: flex;
-      justify-content: center;
-      margin-top: 10px;
-    }
-
-    .bracket-header div {
-      width: 184px;
-      text-align: center;
-      font-size: 18px;
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
-  <h1>
-    <img src="https://res.cloudinary.com/de4q4iitx/image/upload/v1752231585/ifl-logo_q9fmai.png" alt="IFL Logo" />
-    IFL Playoff Predictor 2025/26
-  </h1>
 
-  <div id="stage1"></div>
-  <div id="stage2"></div>
+<h1>
+  <img src="https://res.cloudinary.com/de4q4iitx/image/upload/v1752231585/ifl-logo_q9fmai.png" alt="IFL Logo" />
+  IFL Playoff Predictor 2025/26
+</h1>
 
-  <div id="stage3">
-    <h2>Playoff Bracket</h2>
-    <div class="bracket-header">
-      <div>Divisional</div>
-      <div>Conference</div>
-      <div>Championship</div>
-    </div>
-    <div class="bracket-container">
-      <div class="brackets">
-        <div class="round" id="divisional"></div>
-        <div class="round" id="conference"></div>
-        <div class="round" id="championship"></div>
-      </div>
-      <div class="champion-section">
-        <h3>🏆 Champion 🏆</h3>
-        <div id="champion" class="champion-card"><span>?</span></div>
-        <img src="https://res.cloudinary.com/de4q4iitx/image/upload/v1752185315/WBIII_id02n2.png" alt="World Bowl Logo" class="bowl-logo" />
-      </div>
-    </div>
-    <div class="button-row">
-      <button id="backTo2">Back</button>
-    </div>
+<!-- STAGE 1: Division Winners -->
+<div id="stage1">
+  <h2>Select Division Winners</h2>
+
+  <div id="divisions-container"></div>
+
+  <div class="button-row">
+    <button id="toStage2" disabled>Next: Wildcard Selection</button>
+  </div>
+</div>
+
+<!-- STAGE 2: Wildcards -->
+<div id="stage2">
+  <h2>Select 5 Wildcard Teams</h2>
+  <div id="wildcard-list" class="team-list"></div>
+
+  <div class="button-row">
+    <button id="backToStage1">Back</button>
+    <button id="toStage3" disabled>Next: Playoff Bracket</button>
+  </div>
+</div>
+
+<!-- STAGE 3: Bracket -->
+<div id="stage3">
+  <h2>Playoff Bracket</h2>
+  <div class="bracket-header">
+    <div>Divisional</div>
+    <div>Conference</div>
+    <div>Championship</div>
   </div>
 
-  <script>
-    const allTeams = [
-      { name: "Australia Whites", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182184/australia-whites_h9o2vz.png", division: "East" },
-      { name: "Italia Bulls", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/italia-bulls_aocvis.png", division: "East" },
-      { name: "Belarus Barbarians", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/belarus-barbarians_ydx3kz.png", division: "East" },
-      { name: "Singapore Smelters", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182186/singapore-smelters_qn3ges.png", division: "East" },
-      { name: "South Korea Deers", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182186/southkorea-deers_jbt02f.png", division: "East" },
-      { name: "Poland Panthers", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182186/poland-panthers_ppg3zr.png", division: "East" },
-      { name: "Germany Cavaliers", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/germany-cavaliers_qrcojc.png", division: "Central" },
-      { name: "UK 3 Lions", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182186/uk-tri-lions_kyixfr.png", division: "Central" },
-      { name: "Finaland Frigate", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/belgium-bulldogs_hrx8td.png", division: "Central" },
-      { name: "Belgium Bulldogs", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/belgium-bulldogs_hrx8td.png", division: "Central" },
-      { name: "Holland Hornets", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/holland-hornets_ilzroo.png", division: "Central" },
-      { name: "South Africa Silverbacks", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182186/southafrica-silverbaks_x6but2.png", division: "Central" },
-      { name: "USA Drones", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182187/usa-drones_doeba8.png", division: "West" },
-      { name: "Jamaica Thunder", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/jamaica-thunder_ogo7aj.png", division: "West" },
-      { name: "Rwanda Raiders", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182186/rwanda-raiders_aqtgu7.png", division: "West" },
-      { name: "Egypt Pharaohs", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/egypt-pharaohs_ycglpl.png", division: "West" },
-      { name: "Peru Piranhas", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/peru-piranhas_yueas6.png", division: "West" },
-      { name: "Brazil Hummingbirds", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/brazil-hummingbirds_dras9r.png", division: "West" }
-    ];
+  <div class="bracket-container" style="position:relative;">
+    <div class="brackets">
+      <div class="round" id="divisional"></div>
+      <div class="round" id="conference"></div>
+      <div class="round" id="championship"></div>
+    </div>
 
-    // Rest of JavaScript coming next message due to length…
-  </script>
-  let divisionWinners = {};
-let wildcards = [];
+    <div class="champion-section">
+      <h3>🏆 Champion 🏆</h3>
+      <div id="champion" class="champion-card"><span>?</span></div>
+      <img src="https://res.cloudinary.com/de4q4iitx/image/upload/v1752185315/WBIII_id02n2.png" alt="World Bowl Logo" class="bowl-logo" />
+    </div>
 
-const stage1 = document.getElementById('stage1');
-const stage2 = document.getElementById('stage2');
-const stage3 = document.getElementById('stage3');
+    <!-- SVG lines container -->
+    <svg id="svg-container" width="100%" height="100%"></svg>
+  </div>
 
-// --- Stage 1: Division Winners ---
-function renderStage1() {
-  stage1.innerHTML = '<h2>Select Division Winners</h2>';
-  const divisions = ['East', 'Central', 'West'];
+  <div class="button-row">
+    <button id="backToStage2">Back</button>
+  </div>
+</div>
 
-  divisions.forEach(division => {
-    const divTitle = document.createElement('div');
-    divTitle.className = 'division-title';
-    divTitle.innerHTML = `<strong>${division} Division</strong>`;
-    const teamList = document.createElement('div');
-    teamList.className = 'team-list';
-    teamList.id = `div-${division}`;
-
-    allTeams.filter(t => t.division === division).forEach(team => {
-      const card = createTeamCard(team);
-      card.onclick = () => selectDivisionWinner(team, division, card);
-      teamList.appendChild(card);
-    });
-
-    stage1.appendChild(divTitle);
-    stage1.appendChild(teamList);
-  });
-
-  const nextBtn = document.createElement('button');
-  nextBtn.textContent = 'Next: Select Wildcards';
-  nextBtn.disabled = true;
-  nextBtn.onclick = () => {
-    stage1.style.display = 'none';
-    renderStage2();
-    stage2.style.display = 'block';
-  };
-  nextBtn.id = 'toStage2';
-
-  stage1.appendChild(nextBtn);
-}
-
-function selectDivisionWinner(team, division, card) {
-  divisionWinners[division] = team;
-
-  document.querySelectorAll(`#div-${division} .team-card`).forEach(c => c.classList.remove('selected'));
-  card.classList.add('selected');
-
-  if (Object.keys(divisionWinners).length === 3) {
-    document.getElementById('toStage2').disabled = false;
-  }
-}
-
-// --- Stage 2: Wildcard Selection ---
-function renderStage2() {
-  stage2.innerHTML = '<h2>Select 5 Wildcard Teams</h2><div id="wildcard-list" class="team-list"></div>';
-
-  const excludedNames = Object.values(divisionWinners).map(t => t.name);
-  const wcList = document.getElementById('wildcard-list');
-
-  allTeams.filter(t => !excludedNames.includes(t.name)).forEach(team => {
-    const card = createTeamCard(team);
-    card.onclick = () => toggleWildcard(team, card);
-    wcList.appendChild(card);
-  });
-
-  const nextBtn = document.createElement('button');
-  nextBtn.textContent = 'Next: Bracket';
-  nextBtn.disabled = true;
-  nextBtn.onclick = () => {
-    stage2.style.display = 'none';
-    renderStage3();
-    stage3.style.display = 'block';
-  };
-  nextBtn.id = 'toStage3';
-
-  const backBtn = document.createElement('button');
-  backBtn.textContent = 'Back';
-  backBtn.onclick = () => {
-    stage2.style.display = 'none';
-    stage1.style.display = 'block';
-  };
-
-  stage2.appendChild(document.createElement('br'));
-  stage2.appendChild(backBtn);
-  stage2.appendChild(nextBtn);
-}
-
-function toggleWildcard(team, card) {
-  const i = wildcards.findIndex(t => t.name === team.name);
-  if (i >= 0) {
-    wildcards.splice(i, 1);
-    card.classList.remove('selected');
-  } else if (wildcards.length < 5) {
-    wildcards.push(team);
-    card.classList.add('selected');
-  }
-
-  document.getElementById('toStage3').disabled = wildcards.length !== 5;
-}
-
-// --- Stage 3: Bracket View ---
-const bracketData = {
-  divisional: [],
-  conference: [],
-  championship: []
-};
-
-function renderStage3() {
-  const teams = [...Object.values(divisionWinners), ...wildcards];
-  renderRound('divisional', teams);
-}
-
-function createTeamCard(team) {
-  const card = document.createElement('div');
-  card.className = 'team-card';
-  card.innerHTML = `<img src="${team.logo}" alt=""><span>${team.name}</span>`;
-  return card;
-}
-
-function renderRound(roundId, teams) {
-  const container = document.getElementById(roundId);
-  container.innerHTML = "";
-  bracketData[roundId] = new Array(teams.length / 2).fill(null);
-
-  for (let i = 0; i < teams.length; i += 2) {
-    const matchup = createMatchup(teams[i], teams[i + 1], i / 2, roundId);
-    container.appendChild(matchup);
-  }
-}
-
-function createMatchup(team1, team2, matchIndex, roundId) {
-  const matchup = document.createElement('div');
-  matchup.className = 'matchup';
-  matchup.dataset.match = matchIndex;
-
-  function createCard(team) {
-    const card = document.createElement('div');
-    card.className = 'team-card';
-
-    if (team) {
-      card.dataset.name = team.name;
-      card.innerHTML = `
-        <img src="${team.logo}" alt="${team.name} logo">
-        <span>${team.name}</span>
-      `;
-      card.onclick = () => selectBracketTeam(card, matchIndex, roundId);
-    } else {
-      card.innerHTML = `<span>TBD</span>`;
-      card.style.opacity = 0.5;
+<script>
+(() => {
+  // Teams data grouped by divisions
+  const divisions = [
+    {
+      name: "World East Division",
+      teams: [
+        { name: "Australia Whites", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182184/australia-whites_h9o2vz.png" },
+        { name: "Italia Bulls", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/italia-bulls_aocvis.png" },
+        { name: "Belarus Barbarians", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/belarus-barbarians_ydx3kz.png" },
+        { name: "Singapore Smelters", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182186/singapore-smelters_qn3ges.png" },
+        { name: "South Korea Deers", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182186/southkorea-deers_jbt02f.png" },
+        { name: "Poland Panthers", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182186/poland-panthers_ppg3zr.png" },
+      ]
+    },
+    {
+      name: "World Central Division",
+      teams: [
+        { name: "Germany Cavaliers", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/germany-cavaliers_qrcojc.png" },
+        { name: "UK 3 Lions", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182186/uk-tri-lions_kyixfr.png" },
+        { name: "Finaland Frigate", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/belgium-bulldogs_hrx8td.png" },
+        { name: "Belgium Bulldogs", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/belgium-bulldogs_hrx8td.png" },
+        { name: "Holland Hornets", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/holland-hornets_ilzroo.png" },
+        { name: "South Africa Silverbacks", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182186/southafrica-silverbaks_x6but2.png" },
+      ]
+    },
+    {
+      name: "World West Division",
+      teams: [
+        { name: "USA Drones", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182187/usa-drones_doeba8.png" },
+        { name: "Jamaica Thunder", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/jamaica-thunder_ogo7aj.png" },
+        { name: "Rwanda Raiders", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182186/rwanda-raiders_aqtgu7.png" },
+        { name: "Egypt Pharaohs", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/egypt-pharaohs_ycglpl.png" },
+        { name: "Peru Piranhas", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/peru-piranhas_yueas6.png" },
+        { name: "Brazil Hummingbirds", logo: "https://res.cloudinary.com/de4q4iitx/image/upload/v1752182185/brazil-hummingbirds_dras9r.png" },
+      ]
     }
+  ];
 
+  // Selected teams across stages
+  let selectedDivisionWinners = [null, null, null];
+  let selectedWildcards = [];
+
+  // DOM elements
+  const divisionsContainer = document.getElementById('divisions-container');
+  const toStage2Btn = document.getElementById('toStage2');
+  const wildcardList = document.getElementById('wildcard-list');
+  const toStage3Btn = document.getElementById('toStage3');
+  const backToStage1Btn = document.getElementById('backToStage1');
+  const backToStage2Btn = document.getElementById('backToStage2');
+  const stage1 = document.getElementById('stage1');
+  const stage2 = document.getElementById('stage2');
+  const stage3 = document.getElementById('stage3');
+
+  // Bracket elements and data
+  const divisionalRoundEl = document.getElementById('divisional');
+  const conferenceRoundEl = document.getElementById('conference');
+  const championshipRoundEl = document.getElementById('championship');
+  const championEl = document.getElementById('champion');
+  const svgContainer = document.getElementById('svg-container');
+
+  // Utility to create team card DOM
+  function createTeamCard(team, isSelected, onClick, disabled = false, extraClass = '') {
+    const card = document.createElement('div');
+    card.className = `team-card ${extraClass}`;
+    if (disabled) card.classList.add('disabled');
+    if (isSelected) card.classList.add('selected');
+    card.dataset.name = team.name;
+    card.innerHTML = `
+      <img src="${team.logo}" alt="${team.name} logo" />
+      <span>${team.name}</span>
+    `;
+    if (!disabled && onClick) {
+      card.addEventListener('click', () => onClick(card));
+    }
     return card;
   }
 
-  matchup.appendChild(createCard(team1));
-  matchup.appendChild(createCard(team2));
-  return matchup;
-}
+  // -------- STAGE 1: Division Winners Selection --------
+  function renderStage1() {
+    divisionsContainer.innerHTML = '';
+    divisions.forEach((division, divIdx) => {
+      const divTitle = document.createElement('div');
+      divTitle.className = 'division-title';
+      divTitle.textContent = division.name;
+      divisionsContainer.appendChild(divTitle);
 
-function selectBracketTeam(card, matchIndex, roundId) {
-  const container = document.getElementById(roundId);
-  const matchup = container.querySelector(`.matchup[data-match="${matchIndex}"]`);
-  Array.from(matchup.children).forEach(c => c.classList.remove('selected'));
-  card.classList.add('selected');
+      const teamList = document.createElement('div');
+      teamList.className = 'team-list';
 
-  bracketData[roundId][matchIndex] = {
-    name: card.dataset.name,
-    logo: card.querySelector('img')?.src || ""
+      division.teams.forEach(team => {
+        const isSelected = selectedDivisionWinners[divIdx] && selectedDivisionWinners[divIdx].name === team.name;
+        const card = createTeamCard(team, isSelected, (clickedCard) => {
+          // Select this team as division winner for this division
+          selectedDivisionWinners[divIdx] = team;
+          // Re-render this division's cards to update selection state
+          renderStage1();
+          checkStage1Complete();
+        });
+        teamList.appendChild(card);
+      });
+
+      divisionsContainer.appendChild(teamList);
+    });
+  }
+  function checkStage1Complete() {
+    toStage2Btn.disabled = selectedDivisionWinners.some(t => !t);
+  }
+
+  // -------- STAGE 2: Wildcard Selection --------
+  function renderStage2() {
+    wildcardList.innerHTML = '';
+    // Gather all teams excluding division winners
+    const divisionWinnerNames = selectedDivisionWinners.map(t => t.name);
+    const allTeams = divisions.flatMap(d => d.teams);
+    const wildcardCandidates = allTeams.filter(t => !divisionWinnerNames.includes(t.name));
+
+    wildcardCandidates.forEach(team => {
+      const isSelected = selectedWildcards.some(t => t.name === team.name);
+      const card = createTeamCard(team, isSelected, (clickedCard) => {
+        if (isSelected) {
+          // Deselect
+          selectedWildcards = selectedWildcards.filter(t => t.name !== team.name);
+        } else {
+          if (selectedWildcards.length < 5) {
+            selectedWildcards.push(team);
+          }
+        }
+        renderStage2();
+        checkStage2Complete();
+      });
+      wildcardList.appendChild(card);
+    });
+  }
+  function checkStage2Complete() {
+    toStage3Btn.disabled = selectedWildcards.length !== 5;
+  }
+
+  // -------- STAGE 3: Playoff Bracket --------
+  // Bracket data structure
+  // Divisional round: 4 matchups (8 teams)
+  // Conference round: 2 matchups (4 teams)
+  // Championship round: 1 matchup (2 teams)
+
+  let bracketData = {
+    divisional: [null, null, null, null],
+    conference: [null, null],
+    championship: [null]
   };
 
-  const isComplete = bracketData[roundId].every(x => x !== null);
+  // Render bracket rounds
+  function createMatchup(team1, team2, matchIndex, roundId) {
+    const matchup = document.createElement('div');
+    matchup.className = 'matchup';
+    matchup.dataset.match = matchIndex;
 
-  if (isComplete) {
-    if (roundId === 'divisional') {
-      createNextRound('conference', bracketData.divisional);
-    } else if (roundId === 'conference') {
-      createNextRound('championship', bracketData.conference);
-    } else if (roundId === 'championship') {
-      const champion = bracketData.championship[0];
-      if (champion) {
-        const champEl = document.getElementById('champion');
-        champEl.innerHTML = `
-          <img src="${champion.logo}" alt="${champion.name} logo">
-          <span>${champion.name}</span>
-        `;
+    function createCard(team) {
+      const card = document.createElement('div');
+      card.className = 'team-card bracket';
+      if (team) {
+        card.classList.add('selected');
+        card.dataset.name = team.name;
+        card.innerHTML = `<img src="${team.logo}" alt="${team.name} logo" /><span>${team.name}</span>`;
+      } else {
+        card.innerHTML = `<span>?</span>`;
       }
+      return card;
     }
+
+    const card1 = createCard(team1);
+    const card2 = createCard(team2);
+
+    matchup.appendChild(card1);
+    matchup.appendChild(card2);
+
+    // Clicking a team in rounds other than championship advances them forward:
+    // Only if the next round matchup is empty or allows selecting winner
+    matchup.querySelectorAll('.team-card.bracket').forEach((card, idx) => {
+      card.addEventListener('click', () => {
+        if (!card.classList.contains('selected')) return; // no team there
+        const clickedTeam = bracketData[roundId][matchIndex * 2 + idx];
+        advanceTeam(roundId, matchIndex, idx, clickedTeam);
+      });
+    });
+
+    return matchup;
   }
-}
 
-function createNextRound(nextRoundId, previousWinners) {
-  const container = document.getElementById(nextRoundId);
-  container.innerHTML = "";
-  bracketData[nextRoundId] = [];
-
-  for (let i = 0; i < previousWinners.length; i += 2) {
-    const team1 = previousWinners[i];
-    const team2 = previousWinners[i + 1] || null;
-    const matchup = createMatchup(team1, team2, i / 2, nextRoundId);
-    container.appendChild(matchup);
-    bracketData[nextRoundId].push(null);
+  function advanceTeam(currentRound, matchIndex, teamIndex, team) {
+    if (currentRound === 'divisional') {
+      // Advance to conference round
+      const confMatch = Math.floor(matchIndex / 2);
+      if (!bracketData.conference[confMatch]) {
+        bracketData.conference[confMatch] = [];
+      }
+      bracketData.conference[confMatch][matchIndex % 2] = team;
+      // Flatten conference match data to single team per matchup
+      bracketData.conference[confMatch] = bracketData.conference[confMatch].filter(Boolean);
+      if (bracketData.conference[confMatch].length > 2) bracketData.conference[confMatch].splice(2);
+    } else if (currentRound === 'conference') {
+      // Advance to championship round
+      bracketData.championship[0] = team;
+    } else if (currentRound === 'championship') {
+      // Champion selected
+      championEl.innerHTML = `<img src="${team.logo}" alt="${team.name} logo" /><span>${team.name}</span>`;
+      return; // no further advancement
+    }
+    renderBracket();
   }
-}
 
-document.getElementById('backTo2').onclick = () => {
-  stage3.style.display = 'none';
-  stage2.style.display = 'block';
-};
+  function renderBracket() {
+    // Clear all rounds
+    divisionalRoundEl.innerHTML = '';
+    conferenceRoundEl.innerHTML = '';
+    championshipRoundEl.innerHTML = '';
 
-// Start
-renderStage1();
+    // Prepare divisional round data: 8 teams total
+    const allPlayoffTeams = [...selectedDivisionWinners, ...selectedWildcards];
+    // Hardcoded divisional matchups (4 games, 8 teams)
+    // We'll pair in order: DW0 vs WC0, DW1 vs WC1, DW2 vs WC2, WC3 vs WC4
+    bracketData.divisional = [
+      [selectedDivisionWinners[0], selectedWildcards[0]],
+      [selectedDivisionWinners[1], selectedWildcards[1]],
+      [selectedDivisionWinners[2], selectedWildcards[2]],
+      [selectedWildcards[3], selectedWildcards[4]],
+    ];
+
+    // For consistency, conference and championship rounds are arrays of teams or empty arrays
+    if (!Array.isArray(bracketData.conference[0])) bracketData.conference = [[], []];
+    if (!bracketData.championship[0]) bracketData.championship = [null];
+
+    // Render divisional
+    bracketData.divisional.forEach((matchupTeams, idx) => {
+      const team1 = matchupTeams[0] || null;
+      const team2 = matchupTeams[1] || null;
+      divisionalRoundEl.appendChild(createMatchup(team1, team2, idx, 'divisional'));
+    });
+
+    // Render conference
+    bracketData.conference.forEach((matchupTeams, idx) => {
+      let team1 = null, team2 = null;
+      if (Array.isArray(matchupTeams)) {
+        team1 = matchupTeams[0] || null;
+        team2 = matchupTeams[1] || null;
+      }
+      conferenceRoundEl.appendChild(createMatchup(team1, team2, idx, 'conference'));
+    });
+
+    // Render championship
+    const champTeams = bracketData.championship[0] ? [bracketData.championship[0], null] : [null, null];
+    championshipRoundEl.appendChild(createMatchup(champTeams[0], champTeams[1], 0, 'championship'));
+
+    // Update champion display if already chosen
+    if (championEl.dataset.name) {
+      // Do nothing, champion already displayed
+    } else if (bracketData.championship[0]) {
+      championEl.innerHTML = `<img src="${bracketData.championship[0].logo}" alt="${bracketData.championship[0].name} logo" /><span>${bracketData.championship[0].name}</span>`;
+      championEl.dataset.name = bracketData.championship[0].name;
+    } else {
+      championEl.innerHTML = '<span>?</span>';
+      delete championEl.dataset.name;
+    }
+
+    drawConnectorLines();
+  }
+
+  // Draw curved SVG lines connecting matchups horizontally forming a triangle shape
+  function drawConnectorLines() {
+    // Clear previous SVG
+    while(svgContainer.firstChild) svgContainer.removeChild(svgContainer.firstChild);
+
+    // Helper to get center point of a team card
+    function getCenter(el) {
+      const rect = el.getBoundingClientRect();
+      const parentRect = svgContainer.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width,
+        y: rect.top + rect.height/2,
+        relX: rect.left + rect.width - parentRect.left,
+        relY: rect.top + rect.height/2 - parentRect.top
+      };
+    }
+
+    // For each divisional matchup, connect selected team to conference matchup
+    // Divisional to Conference (4 games -> 2 games)
+    divisionalRoundEl.querySelectorAll('.matchup').forEach((divMatch, i) => {
+      const confMatchIndex = Math.floor(i/2);
+      const confMatch = conferenceRoundEl.children[confMatchIndex];
+      if (!confMatch) return;
+
+      // Determine which team advanced from divisional match i
+      const selectedTeams = [];
+      divMatch.querySelectorAll('.team-card.selected').forEach(tc => selectedTeams.push(tc));
+      if (selectedTeams.length !== 1) return; // only connect if exactly one selected team
+
+      const fromCard = selectedTeams[0];
+      const fromCenter = getCenter(fromCard);
+
+      // Conference matchup cards
+      const confCards = confMatch.querySelectorAll('.team-card');
+      // The corresponding team card in conference match depends on i:
+      // i=0 or 1 => conference match 0, i=2 or 3 => conference match 1
+      // Within conference match: i even -> team 0, i odd -> team1
+      const confTeamIndex = i % 2;
+      const toCard = confCards[confTeamIndex];
+      if (!toCard) return;
+      const toCenter = getCenter(toCard);
+
+      drawCurveLine(fromCenter.relX, fromCenter.relY, toCenter.relX, toCenter.relY);
+    });
+
+    // Conference to Championship (2 games -> 1 game)
+    conferenceRoundEl.querySelectorAll('.matchup').forEach((confMatch, i) => {
+      const champMatch = championshipRoundEl.children[0];
+      if (!champMatch) return;
+
+      // Determine selected team in this conference matchup
+      const selectedTeams = [];
+      confMatch.querySelectorAll('.team-card.selected').forEach(tc => selectedTeams.push(tc));
+      if (selectedTeams.length !== 1) return;
+
+      const fromCard = selectedTeams[0];
+      const fromCenter = getCenter(fromCard);
+
+      // Championship matchup has 2 team cards
+      const champCards = champMatch.querySelectorAll('.team-card');
+      const toCard = champCards[i];
+      if (!toCard) return;
+      const toCenter = getCenter(toCard);
+
+      drawCurveLine(fromCenter.relX, fromCenter.relY, toCenter.relX, toCenter.relY);
+    });
+
+    // Championship to Champion box (single)
+    const champMatch = championshipRoundEl.children[0];
+    if (!champMatch) return;
+    const selectedChampTeams = [];
+    champMatch.querySelectorAll('.team-card.selected').forEach(tc => selectedChampTeams.push(tc));
+    if (selectedChampTeams.length !== 1) return;
+    const fromCard = selectedChampTeams[0];
+    const fromCenter = getCenter(fromCard);
+
+    const champBoxRect = championEl.getBoundingClientRect();
+    const parentRect = svgContainer.getBoundingClientRect();
+    const toX = champBoxRect.left - parentRect.left;
+    const toY = champBoxRect.top + champBoxRect.height/2 - parentRect.top;
+
+    drawCurveLine(fromCenter.relX, fromCenter.relY, toX, toY);
+  }
+
+  // Draw a cubic bezier curved line between two points
+  function drawCurveLine(x1, y1, x2, y2) {
+    const svgNS = "http://www.w3.org/2000/svg";
+    const path = document.createElementNS(svgNS, 'path');
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const curvature = 0.4; // curve control
+
+    const cx1 = x1 + dx * curvature;
+    const cy1 = y1;
+    const cx2 = x2 - dx * curvature;
+    const cy2 = y2;
+
+    const d = `M${x1},${y1} C${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`;
+
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', '#00BFFF');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke-linecap', 'round');
+
+    svgContainer.appendChild(path);
+  }
+
+  // -------- Navigation between stages --------
+  document.getElementById('toStage2').addEventListener('click', () => {
+    if (selectedDivisionWinners.some(t => !t)) return; // safety check
+    stage1.style.display = 'none';
+    stage2.style.display = 'block';
+    renderStage2();
+    checkStage2Complete();
+  });
+
+  document.getElementById('backToStage1').addEventListener('click', () => {
+    stage2.style.display = 'none';
+    stage1.style.display = 'block';
+  });
+
+  document.getElementById('toStage3').addEventListener('click', () => {
+    if (selectedWildcards.length !== 5) return;
+    stage2.style.display = 'none';
+    stage3.style.display = 'block';
+    renderBracket();
+  });
+
+  document.getElementById('backToStage2').addEventListener('click', () => {
+    stage3.style.display = 'none';
+    stage2.style.display = 'block';
+  });
+
+  // Initial rendering
+  renderStage1();
+  checkStage1Complete();
+
+  // Resize SVG container on window resize to reposition lines properly
+  function resizeSVG() {
+    svgContainer.style.width = stage3.querySelector('.bracket-container').offsetWidth + 'px';
+    svgContainer.style.height = stage3.querySelector('.bracket-container').offsetHeight + 'px';
+    drawConnectorLines();
+  }
+  window.addEventListener('resize', () => {
+    if (stage3.style.display === 'block') {
+      resizeSVG();
+    }
+  });
+
+  // After bracket is rendered, set SVG container size and draw lines
+  function renderBracket() {
+    // Clear rounds
+    divisionalRoundEl.innerHTML = '';
+    conferenceRoundEl.innerHTML = '';
+    championshipRoundEl.innerHTML = '';
+
+    // Build divisional round
+    bracketData.divisional = [
+      [selectedDivisionWinners[0], selectedWildcards[0]],
+      [selectedDivisionWinners[1], selectedWildcards[1]],
+      [selectedDivisionWinners[2], selectedWildcards[2]],
+      [selectedWildcards[3], selectedWildcards[4]],
+    ];
+
+    // Prepare conference and championship arrays if undefined
+    if (!Array.isArray(bracketData.conference[0])) bracketData.conference = [[], []];
+    if (!bracketData.championship[0]) bracketData.championship = [null];
+
+    // Render divisional
+    bracketData.divisional.forEach((teams, idx) => {
+      divisionalRoundEl.appendChild(createMatchup(teams[0], teams[1], idx, 'divisional'));
+    });
+
+    // Render conference
+    bracketData.conference.forEach((teams, idx) => {
+      const t1 = Array.isArray(teams) ? teams[0] || null : null;
+      const t2 = Array.isArray(teams) ? teams[1] || null : null;
+      conferenceRoundEl.appendChild(createMatchup(t1, t2, idx, 'conference'));
+    });
+
+    // Render championship
+    const champTeams = bracketData.championship[0] ? [bracketData.championship[0], null] : [null, null];
+    championshipRoundEl.appendChild(createMatchup(champTeams[0], champTeams[1], 0, 'championship'));
+
+    // Update champion display
+    if (championEl.dataset.name) {
+      // already set
+    } else if (bracketData.championship[0]) {
+      championEl.innerHTML = `<img src="${bracketData.championship[0].logo}" alt="${bracketData.championship[0].name} logo" /><span>${bracketData.championship[0].name}</span>`;
+      championEl.dataset.name = bracketData.championship[0].name;
+    } else {
+      championEl.innerHTML = '<span>?</span>';
+      delete championEl.dataset.name;
+    }
+
+    // Resize and draw connector lines after a short delay for layout to settle
+    setTimeout(() => {
+      svgContainer.style.width = stage3.querySelector('.bracket-container').offsetWidth + 'px';
+      svgContainer.style.height = stage3.querySelector('.bracket-container').offsetHeight + 'px';
+      drawConnectorLines();
+    }, 50);
+  }
+})();
+</script>
 
 </body>
 </html>
-
