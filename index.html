@@ -21,8 +21,6 @@
   h1, h2, h3 {
     margin: 20px 0 12px;
   }
-
-  /* ======== Stage container styles ======== */
   #stage1, #stage2, #stage3 {
     padding: 20px;
     max-width: 960px;
@@ -31,20 +29,11 @@
   #stage2, #stage3 {
     display: none;
   }
-
-  /* ======== Division & Wildcard team card styles ======== */
   .division-title {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
     font-size: 1.3rem;
-    margin-bottom: 12px;
+    margin: 20px 0 8px;
   }
-  .division-title img {
-    height: 30px;
-  }
-  .team-list, #wildcard-list {
+  .team-list {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -57,10 +46,9 @@
     border-radius: 6px;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.2s, opacity 0.2s;
     box-shadow: 0 0 6px rgba(0,0,0,0.4);
-    user-select: none;
     background: #222;
+    user-select: none;
   }
   .team-card img {
     width: 100%;
@@ -73,10 +61,10 @@
     left: 0;
     right: 0;
     transform: translateY(-50%);
-    text-shadow: 0 0 4px #000;
-    color: #fff;
     font-weight: bold;
     font-size: 0.9rem;
+    color: #fff;
+    text-shadow: 0 0 4px #000;
     pointer-events: none;
   }
   .team-card.selected {
@@ -84,14 +72,8 @@
     transform: scale(1.05);
     z-index: 2;
   }
-  .team-card.disabled {
-    display: none !important;
-  }
-
-  /* ======== Buttons ======== */
   .button-row {
     margin: 30px 0;
-    text-align: center;
   }
   button {
     background: #00BFFF;
@@ -111,8 +93,6 @@
     background: #444;
     cursor: not-allowed;
   }
-
-  /* ======== Bracket styles ======== */
   .bracket-header {
     display: flex;
     justify-content: center;
@@ -122,15 +102,14 @@
   .bracket-header div {
     width: 184px;
     text-align: center;
-    font-size: 18px;
     font-weight: 600;
+    font-size: 18px;
   }
   .bracket-container {
     display: flex;
     justify-content: center;
     align-items: flex-start;
     gap: 40px;
-    position: relative;
     flex-wrap: wrap;
   }
   .brackets {
@@ -145,11 +124,8 @@
   }
   .matchup {
     margin: 20px 0;
-    position: relative;
     width: 144px;
   }
-
-  /* Team card for bracket */
   .team-card.bracket {
     cursor: pointer;
     position: relative;
@@ -170,7 +146,6 @@
   }
   .team-card.bracket span {
     position: absolute;
-    z-index: 2;
     width: 100%;
     height: 100%;
     font-size: 0.9rem;
@@ -182,12 +157,12 @@
     text-shadow: 0 0 4px #000;
     background: rgba(0,0,0,0.3);
     pointer-events: none;
+    z-index: 2;
   }
   .team-card.bracket.selected {
     outline: 3px solid #00BFFF;
     transform: scale(1.05);
   }
-
   .champion-section {
     display: flex;
     flex-direction: column;
@@ -225,13 +200,10 @@
     align-items: center;
     pointer-events: none;
   }
-
   .bowl-logo {
     width: 100px;
     margin-top: 10px;
   }
-
-  /* Responsive tweaks */
   @media (max-width: 800px) {
     .bracket-header {
       flex-wrap: wrap;
@@ -256,29 +228,23 @@
   IFL Playoff Predictor 2025/26
 </h1>
 
-<!-- STAGE 1: Division Winners -->
 <div id="stage1">
   <h2>Select Division Winners</h2>
-
   <div id="divisions-container"></div>
-
   <div class="button-row">
     <button id="toStage2" disabled>Next: Wildcard Selection</button>
   </div>
 </div>
 
-<!-- STAGE 2: Wildcards -->
 <div id="stage2">
   <h2>Select 5 Wildcard Teams</h2>
   <div id="wildcard-list" class="team-list"></div>
-
   <div class="button-row">
     <button id="backToStage1">Back</button>
     <button id="toStage3" disabled>Next: Playoff Bracket</button>
   </div>
 </div>
 
-<!-- STAGE 3: Bracket -->
 <div id="stage3">
   <h2>Playoff Bracket</h2>
   <div class="bracket-header">
@@ -286,21 +252,18 @@
     <div>Conference</div>
     <div>Championship</div>
   </div>
-
   <div class="bracket-container">
     <div class="brackets">
       <div class="round" id="divisional"></div>
       <div class="round" id="conference"></div>
       <div class="round" id="championship"></div>
     </div>
-
     <div class="champion-section">
       <h3>🏆 Champion 🏆</h3>
       <div id="champion" class="champion-card"><span>?</span></div>
       <img src="https://res.cloudinary.com/de4q4iitx/image/upload/v1752185315/WBIII_id02n2.png" alt="World Bowl Logo" class="bowl-logo" />
     </div>
   </div>
-
   <div class="button-row">
     <button id="backToStage2">Back</button>
   </div>
@@ -308,6 +271,7 @@
 
 <script>
 (() => {
+  // Data
   const divisions = [
     {
       name: "World East Division",
@@ -344,9 +308,17 @@
     }
   ];
 
+  // State
   let selectedDivisionWinners = [null, null, null];
   let selectedWildcards = [];
+  let bracket = {
+    divisional: [],
+    conference: [[null, null], [null, null]],
+    championship: [null, null],
+  };
+  let champion = null;
 
+  // Elements
   const divisionsContainer = document.getElementById('divisions-container');
   const toStage2Btn = document.getElementById('toStage2');
   const wildcardList = document.getElementById('wildcard-list');
@@ -356,31 +328,26 @@
   const stage1 = document.getElementById('stage1');
   const stage2 = document.getElementById('stage2');
   const stage3 = document.getElementById('stage3');
-
   const divisionalRoundEl = document.getElementById('divisional');
   const conferenceRoundEl = document.getElementById('conference');
   const championshipRoundEl = document.getElementById('championship');
   const championEl = document.getElementById('champion');
 
-  // Helper to create team cards with event listeners
-  function createTeamCard(team, isSelected, onClick, disabled = false, extraClass = '') {
+  // Utils
+  function createTeamCard(team, selected, clickHandler, disabled = false, extraClass = '') {
     const card = document.createElement('div');
-    card.className = `team-card ${extraClass}`;
-    if (disabled) card.classList.add('disabled');
-    if (isSelected) card.classList.add('selected');
+    card.className = `team-card ${extraClass}` + (selected ? ' selected' : '');
+    if (disabled) card.style.display = 'none';
     card.dataset.name = team.name;
     card.dataset.logo = team.logo;
-    card.innerHTML = `
-      <img src="${team.logo}" alt="${team.name} logo" />
-      <span>${team.name}</span>
-    `;
-    if (!disabled && onClick) {
-      card.addEventListener('click', () => onClick(card));
+    card.innerHTML = `<img src="${team.logo}" alt="${team.name} logo" /><span>${team.name}</span>`;
+    if (!disabled && clickHandler) {
+      card.addEventListener('click', () => clickHandler(team));
     }
     return card;
   }
 
-  // Render stage 1 division winners
+  // STAGE 1 render divisions & selection
   function renderStage1() {
     divisionsContainer.innerHTML = '';
     divisions.forEach((division, divIdx) => {
@@ -388,43 +355,39 @@
       divTitle.className = 'division-title';
       divTitle.textContent = division.name;
       divisionsContainer.appendChild(divTitle);
-
       const teamList = document.createElement('div');
       teamList.className = 'team-list';
 
       division.teams.forEach(team => {
         const isSelected = selectedDivisionWinners[divIdx] && selectedDivisionWinners[divIdx].name === team.name;
-        const card = createTeamCard(team, isSelected, () => {
-          selectedDivisionWinners[divIdx] = team;
+        const card = createTeamCard(team, isSelected, (t) => {
+          selectedDivisionWinners[divIdx] = t;
           renderStage1();
           checkStage1Complete();
         });
         teamList.appendChild(card);
       });
-
       divisionsContainer.appendChild(teamList);
     });
   }
+
   function checkStage1Complete() {
     toStage2Btn.disabled = selectedDivisionWinners.some(t => !t);
   }
 
-  // Render wildcard selection excluding division winners
+  // STAGE 2 render wildcard selection excluding division winners
   function renderStage2() {
     wildcardList.innerHTML = '';
     const divisionWinnerNames = selectedDivisionWinners.map(t => t.name);
     const allTeams = divisions.flatMap(d => d.teams);
     const wildcardCandidates = allTeams.filter(t => !divisionWinnerNames.includes(t.name));
-
     wildcardCandidates.forEach(team => {
       const isSelected = selectedWildcards.some(t => t.name === team.name);
-      const card = createTeamCard(team, isSelected, () => {
+      const card = createTeamCard(team, isSelected, (t) => {
         if (isSelected) {
-          selectedWildcards = selectedWildcards.filter(t => t.name !== team.name);
-        } else {
-          if (selectedWildcards.length < 5) {
-            selectedWildcards.push(team);
-          }
+          selectedWildcards = selectedWildcards.filter(w => w.name !== t.name);
+        } else if (selectedWildcards.length < 5) {
+          selectedWildcards.push(t);
         }
         renderStage2();
         checkStage2Complete();
@@ -432,19 +395,15 @@
       wildcardList.appendChild(card);
     });
   }
+
   function checkStage2Complete() {
     toStage3Btn.disabled = selectedWildcards.length !== 5;
   }
 
-  // Data for bracket rounds
-  let bracketData = {
-    divisional: [],
-    conference: [null, null],
-    championship: [null],
-  };
+  // Stage 3 - bracket render & logic
 
-  // Create a matchup element for bracket with clickable teams
-  function createMatchup(team1, team2, matchIndex, roundId) {
+  // Create matchup element
+  function createMatchup(team1, team2, roundName, matchIdx) {
     const matchup = document.createElement('div');
     matchup.className = 'matchup';
 
@@ -464,87 +423,69 @@
 
     const card1 = createCard(team1);
     const card2 = createCard(team2);
-
     matchup.appendChild(card1);
     matchup.appendChild(card2);
 
-    // Clicking team in bracket to advance winner
-    matchup.querySelectorAll('.team-card.bracket.selected').forEach((card, idx) => {
+    // Advance logic on team click
+    [card1, card2].forEach((card, idx) => {
       card.addEventListener('click', () => {
         const clickedTeam = idx === 0 ? team1 : team2;
         if (!clickedTeam) return;
-        advanceTeam(roundId, matchIndex, clickedTeam);
+        advanceTeam(roundName, matchIdx, clickedTeam);
       });
     });
 
     return matchup;
   }
 
-  // Advance team through bracket rounds
-  function advanceTeam(currentRound, matchIndex, team) {
-    if (currentRound === 'divisional') {
-      const confMatch = Math.floor(matchIndex / 2);
-      if (!bracketData.conference[confMatch]) bracketData.conference[confMatch] = [null, null];
-      // Assign winner to conference matchup slot
-      const slot = matchIndex % 2;
-      bracketData.conference[confMatch][slot] = team;
-    } else if (currentRound === 'conference') {
-      bracketData.championship[0] = team;
-    } else if (currentRound === 'championship') {
+  // Advance winner logic
+  function advanceTeam(round, matchIdx, team) {
+    if (round === 'divisional') {
+      const confMatch = Math.floor(matchIdx / 2);
+      const slot = matchIdx % 2;
+      if (!bracket.conference[confMatch]) bracket.conference[confMatch] = [null, null];
+      bracket.conference[confMatch][slot] = team;
+    } else if (round === 'conference') {
+      bracket.championship[matchIdx] = team;
+    } else if (round === 'championship') {
+      champion = team;
       championEl.innerHTML = `<img src="${team.logo}" alt="${team.name} logo" /><span>${team.name}</span>`;
-      championEl.dataset.name = team.name;
-      return;
     }
     renderBracket();
   }
 
-  // Render the full bracket based on bracketData and selections
+  // Render bracket rounds
   function renderBracket() {
     divisionalRoundEl.innerHTML = '';
     conferenceRoundEl.innerHTML = '';
     championshipRoundEl.innerHTML = '';
 
-    // Divisional matchups: 3 division winners + 5 wildcards in fixed pairs
-    // We'll create 4 divisional matchups: 
-    // Match 0: Division winner 0 vs wildcard 0
-    // Match 1: Division winner 1 vs wildcard 1
-    // Match 2: Division winner 2 vs wildcard 2
-    // Match 3: wildcard 3 vs wildcard 4
-
-    bracketData.divisional = [
+    // Setup divisional matchups: fixed pairs of division winners vs wildcards
+    bracket.divisional = [
       [selectedDivisionWinners[0], selectedWildcards[0]],
       [selectedDivisionWinners[1], selectedWildcards[1]],
       [selectedDivisionWinners[2], selectedWildcards[2]],
       [selectedWildcards[3], selectedWildcards[4]],
     ];
 
-    if (!Array.isArray(bracketData.conference[0])) bracketData.conference = [[null, null], [null, null]];
-    if (!bracketData.championship[0]) bracketData.championship = [null];
-
-    bracketData.divisional.forEach((matchupTeams, idx) => {
-      divisionalRoundEl.appendChild(createMatchup(matchupTeams[0], matchupTeams[1], idx, 'divisional'));
+    bracket.divisional.forEach((matchupTeams, idx) => {
+      divisionalRoundEl.appendChild(createMatchup(matchupTeams[0], matchupTeams[1], 'divisional', idx));
     });
-    bracketData.conference.forEach((matchupTeams, idx) => {
-      const t1 = Array.isArray(matchupTeams) ? matchupTeams[0] : null;
-      const t2 = Array.isArray(matchupTeams) ? matchupTeams[1] : null;
-      conferenceRoundEl.appendChild(createMatchup(t1, t2, idx, 'conference'));
-    });
-    const champTeams = bracketData.championship[0] ? [bracketData.championship[0], null] : [null, null];
-    championshipRoundEl.appendChild(createMatchup(champTeams[0], champTeams[1], 0, 'championship'));
 
-    // Show champion if set
-    if (championEl.dataset.name) {
-      // already shown
-    } else if (bracketData.championship[0]) {
-      championEl.innerHTML = `<img src="${bracketData.championship[0].logo}" alt="${bracketData.championship[0].name} logo" /><span>${bracketData.championship[0].name}</span>`;
-      championEl.dataset.name = bracketData.championship[0].name;
+    bracket.conference.forEach((matchupTeams, idx) => {
+      conferenceRoundEl.appendChild(createMatchup(matchupTeams[0], matchupTeams[1], 'conference', idx));
+    });
+
+    championshipRoundEl.appendChild(createMatchup(bracket.championship[0], bracket.championship[1], 'championship', 0));
+
+    if (champion) {
+      championEl.innerHTML = `<img src="${champion.logo}" alt="${champion.name} logo" /><span>${champion.name}</span>`;
     } else {
       championEl.innerHTML = '<span>?</span>';
-      delete championEl.dataset.name;
     }
   }
 
-  // Navigation buttons handlers
+  // Buttons and navigation handlers
   toStage2Btn.addEventListener('click', () => {
     if (selectedDivisionWinners.some(t => !t)) return;
     stage1.style.display = 'none';
@@ -574,7 +515,6 @@
   function checkStage1Complete() {
     toStage2Btn.disabled = selectedDivisionWinners.some(t => !t);
   }
-
   function checkStage2Complete() {
     toStage3Btn.disabled = selectedWildcards.length !== 5;
   }
