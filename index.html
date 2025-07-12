@@ -231,14 +231,6 @@
     margin-top: 10px;
   }
 
-  /* SVG connector container - absolutely positioned */
-  #svg-container {
-    position: absolute;
-    top: 0; left: 0;
-    pointer-events: none;
-    z-index: 0;
-  }
-
   /* Responsive tweaks */
   @media (max-width: 800px) {
     .bracket-header {
@@ -295,7 +287,7 @@
     <div>Championship</div>
   </div>
 
-  <div class="bracket-container" style="position:relative;">
+  <div class="bracket-container">
     <div class="brackets">
       <div class="round" id="divisional"></div>
       <div class="round" id="conference"></div>
@@ -307,9 +299,6 @@
       <div id="champion" class="champion-card"><span>?</span></div>
       <img src="https://res.cloudinary.com/de4q4iitx/image/upload/v1752185315/WBIII_id02n2.png" alt="World Bowl Logo" class="bowl-logo" />
     </div>
-
-    <!-- SVG lines container -->
-    <svg id="svg-container" width="100%" height="100%"></svg>
   </div>
 
   <div class="button-row">
@@ -319,7 +308,6 @@
 
 <script>
 (() => {
-  // Teams data grouped by divisions
   const divisions = [
     {
       name: "World East Division",
@@ -356,11 +344,9 @@
     }
   ];
 
-  // Selected teams across stages
   let selectedDivisionWinners = [null, null, null];
   let selectedWildcards = [];
 
-  // DOM elements
   const divisionsContainer = document.getElementById('divisions-container');
   const toStage2Btn = document.getElementById('toStage2');
   const wildcardList = document.getElementById('wildcard-list');
@@ -371,14 +357,11 @@
   const stage2 = document.getElementById('stage2');
   const stage3 = document.getElementById('stage3');
 
-  // Bracket elements and data
   const divisionalRoundEl = document.getElementById('divisional');
   const conferenceRoundEl = document.getElementById('conference');
   const championshipRoundEl = document.getElementById('championship');
   const championEl = document.getElementById('champion');
-  const svgContainer = document.getElementById('svg-container');
 
-  // Utility to create team card DOM
   function createTeamCard(team, isSelected, onClick, disabled = false, extraClass = '') {
     const card = document.createElement('div');
     card.className = `team-card ${extraClass}`;
@@ -395,7 +378,6 @@
     return card;
   }
 
-  // -------- STAGE 1: Division Winners Selection --------
   function renderStage1() {
     divisionsContainer.innerHTML = '';
     divisions.forEach((division, divIdx) => {
@@ -409,10 +391,8 @@
 
       division.teams.forEach(team => {
         const isSelected = selectedDivisionWinners[divIdx] && selectedDivisionWinners[divIdx].name === team.name;
-        const card = createTeamCard(team, isSelected, (clickedCard) => {
-          // Select this team as division winner for this division
+        const card = createTeamCard(team, isSelected, () => {
           selectedDivisionWinners[divIdx] = team;
-          // Re-render this division's cards to update selection state
           renderStage1();
           checkStage1Complete();
         });
@@ -426,19 +406,16 @@
     toStage2Btn.disabled = selectedDivisionWinners.some(t => !t);
   }
 
-  // -------- STAGE 2: Wildcard Selection --------
   function renderStage2() {
     wildcardList.innerHTML = '';
-    // Gather all teams excluding division winners
     const divisionWinnerNames = selectedDivisionWinners.map(t => t.name);
     const allTeams = divisions.flatMap(d => d.teams);
     const wildcardCandidates = allTeams.filter(t => !divisionWinnerNames.includes(t.name));
 
     wildcardCandidates.forEach(team => {
       const isSelected = selectedWildcards.some(t => t.name === team.name);
-      const card = createTeamCard(team, isSelected, (clickedCard) => {
+      const card = createTeamCard(team, isSelected, () => {
         if (isSelected) {
-          // Deselect
           selectedWildcards = selectedWildcards.filter(t => t.name !== team.name);
         } else {
           if (selectedWildcards.length < 5) {
@@ -455,23 +432,15 @@
     toStage3Btn.disabled = selectedWildcards.length !== 5;
   }
 
-  // -------- STAGE 3: Playoff Bracket --------
-  // Bracket data structure
-  // Divisional round: 4 matchups (8 teams)
-  // Conference round: 2 matchups (4 teams)
-  // Championship round: 1 matchup (2 teams)
-
   let bracketData = {
     divisional: [null, null, null, null],
     conference: [null, null],
-    championship: [null]
+    championship: [null],
   };
 
-  // Render bracket rounds
   function createMatchup(team1, team2, matchIndex, roundId) {
     const matchup = document.createElement('div');
     matchup.className = 'matchup';
-    matchup.dataset.match = matchIndex;
 
     function createCard(team) {
       const card = document.createElement('div');
@@ -493,7 +462,6 @@
     matchup.appendChild(card2);
 
     // Clicking a team in rounds other than championship advances them forward:
-    // Only if the next round matchup is empty or allows selecting winner
     matchup.querySelectorAll('.team-card.bracket').forEach((card, idx) => {
       card.addEventListener('click', () => {
         if (!card.classList.contains('selected')) return; // no team there
@@ -507,36 +475,28 @@
 
   function advanceTeam(currentRound, matchIndex, teamIndex, team) {
     if (currentRound === 'divisional') {
-      // Advance to conference round
       const confMatch = Math.floor(matchIndex / 2);
       if (!bracketData.conference[confMatch]) {
         bracketData.conference[confMatch] = [];
       }
       bracketData.conference[confMatch][matchIndex % 2] = team;
-      // Flatten conference match data to single team per matchup
       bracketData.conference[confMatch] = bracketData.conference[confMatch].filter(Boolean);
       if (bracketData.conference[confMatch].length > 2) bracketData.conference[confMatch].splice(2);
     } else if (currentRound === 'conference') {
-      // Advance to championship round
       bracketData.championship[0] = team;
     } else if (currentRound === 'championship') {
-      // Champion selected
       championEl.innerHTML = `<img src="${team.logo}" alt="${team.name} logo" /><span>${team.name}</span>`;
-      return; // no further advancement
+      championEl.dataset.name = team.name;
+      return;
     }
     renderBracket();
   }
 
   function renderBracket() {
-    // Clear all rounds
     divisionalRoundEl.innerHTML = '';
     conferenceRoundEl.innerHTML = '';
     championshipRoundEl.innerHTML = '';
 
-    // Prepare divisional round data: 8 teams total
-    const allPlayoffTeams = [...selectedDivisionWinners, ...selectedWildcards];
-    // Hardcoded divisional matchups (4 games, 8 teams)
-    // We'll pair in order: DW0 vs WC0, DW1 vs WC1, DW2 vs WC2, WC3 vs WC4
     bracketData.divisional = [
       [selectedDivisionWinners[0], selectedWildcards[0]],
       [selectedDivisionWinners[1], selectedWildcards[1]],
@@ -544,231 +504,22 @@
       [selectedWildcards[3], selectedWildcards[4]],
     ];
 
-    // For consistency, conference and championship rounds are arrays of teams or empty arrays
     if (!Array.isArray(bracketData.conference[0])) bracketData.conference = [[], []];
     if (!bracketData.championship[0]) bracketData.championship = [null];
 
-    // Render divisional
     bracketData.divisional.forEach((matchupTeams, idx) => {
-      const team1 = matchupTeams[0] || null;
-      const team2 = matchupTeams[1] || null;
-      divisionalRoundEl.appendChild(createMatchup(team1, team2, idx, 'divisional'));
+      divisionalRoundEl.appendChild(createMatchup(matchupTeams[0], matchupTeams[1], idx, 'divisional'));
     });
 
-    // Render conference
     bracketData.conference.forEach((matchupTeams, idx) => {
-      let team1 = null, team2 = null;
-      if (Array.isArray(matchupTeams)) {
-        team1 = matchupTeams[0] || null;
-        team2 = matchupTeams[1] || null;
-      }
-      conferenceRoundEl.appendChild(createMatchup(team1, team2, idx, 'conference'));
-    });
-
-    // Render championship
-    const champTeams = bracketData.championship[0] ? [bracketData.championship[0], null] : [null, null];
-    championshipRoundEl.appendChild(createMatchup(champTeams[0], champTeams[1], 0, 'championship'));
-
-    // Update champion display if already chosen
-    if (championEl.dataset.name) {
-      // Do nothing, champion already displayed
-    } else if (bracketData.championship[0]) {
-      championEl.innerHTML = `<img src="${bracketData.championship[0].logo}" alt="${bracketData.championship[0].name} logo" /><span>${bracketData.championship[0].name}</span>`;
-      championEl.dataset.name = bracketData.championship[0].name;
-    } else {
-      championEl.innerHTML = '<span>?</span>';
-      delete championEl.dataset.name;
-    }
-
-    drawConnectorLines();
-  }
-
-  // Draw curved SVG lines connecting matchups horizontally forming a triangle shape
-  function drawConnectorLines() {
-    // Clear previous SVG
-    while(svgContainer.firstChild) svgContainer.removeChild(svgContainer.firstChild);
-
-    // Helper to get center point of a team card
-    function getCenter(el) {
-      const rect = el.getBoundingClientRect();
-      const parentRect = svgContainer.getBoundingClientRect();
-      return {
-        x: rect.left + rect.width,
-        y: rect.top + rect.height/2,
-        relX: rect.left + rect.width - parentRect.left,
-        relY: rect.top + rect.height/2 - parentRect.top
-      };
-    }
-
-    // For each divisional matchup, connect selected team to conference matchup
-    // Divisional to Conference (4 games -> 2 games)
-    divisionalRoundEl.querySelectorAll('.matchup').forEach((divMatch, i) => {
-      const confMatchIndex = Math.floor(i/2);
-      const confMatch = conferenceRoundEl.children[confMatchIndex];
-      if (!confMatch) return;
-
-      // Determine which team advanced from divisional match i
-      const selectedTeams = [];
-      divMatch.querySelectorAll('.team-card.selected').forEach(tc => selectedTeams.push(tc));
-      if (selectedTeams.length !== 1) return; // only connect if exactly one selected team
-
-      const fromCard = selectedTeams[0];
-      const fromCenter = getCenter(fromCard);
-
-      // Conference matchup cards
-      const confCards = confMatch.querySelectorAll('.team-card');
-      // The corresponding team card in conference match depends on i:
-      // i=0 or 1 => conference match 0, i=2 or 3 => conference match 1
-      // Within conference match: i even -> team 0, i odd -> team1
-      const confTeamIndex = i % 2;
-      const toCard = confCards[confTeamIndex];
-      if (!toCard) return;
-      const toCenter = getCenter(toCard);
-
-      drawCurveLine(fromCenter.relX, fromCenter.relY, toCenter.relX, toCenter.relY);
-    });
-
-    // Conference to Championship (2 games -> 1 game)
-    conferenceRoundEl.querySelectorAll('.matchup').forEach((confMatch, i) => {
-      const champMatch = championshipRoundEl.children[0];
-      if (!champMatch) return;
-
-      // Determine selected team in this conference matchup
-      const selectedTeams = [];
-      confMatch.querySelectorAll('.team-card.selected').forEach(tc => selectedTeams.push(tc));
-      if (selectedTeams.length !== 1) return;
-
-      const fromCard = selectedTeams[0];
-      const fromCenter = getCenter(fromCard);
-
-      // Championship matchup has 2 team cards
-      const champCards = champMatch.querySelectorAll('.team-card');
-      const toCard = champCards[i];
-      if (!toCard) return;
-      const toCenter = getCenter(toCard);
-
-      drawCurveLine(fromCenter.relX, fromCenter.relY, toCenter.relX, toCenter.relY);
-    });
-
-    // Championship to Champion box (single)
-    const champMatch = championshipRoundEl.children[0];
-    if (!champMatch) return;
-    const selectedChampTeams = [];
-    champMatch.querySelectorAll('.team-card.selected').forEach(tc => selectedChampTeams.push(tc));
-    if (selectedChampTeams.length !== 1) return;
-    const fromCard = selectedChampTeams[0];
-    const fromCenter = getCenter(fromCard);
-
-    const champBoxRect = championEl.getBoundingClientRect();
-    const parentRect = svgContainer.getBoundingClientRect();
-    const toX = champBoxRect.left - parentRect.left;
-    const toY = champBoxRect.top + champBoxRect.height/2 - parentRect.top;
-
-    drawCurveLine(fromCenter.relX, fromCenter.relY, toX, toY);
-  }
-
-  // Draw a cubic bezier curved line between two points
-  function drawCurveLine(x1, y1, x2, y2) {
-    const svgNS = "http://www.w3.org/2000/svg";
-    const path = document.createElementNS(svgNS, 'path');
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const curvature = 0.4; // curve control
-
-    const cx1 = x1 + dx * curvature;
-    const cy1 = y1;
-    const cx2 = x2 - dx * curvature;
-    const cy2 = y2;
-
-    const d = `M${x1},${y1} C${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`;
-
-    path.setAttribute('d', d);
-    path.setAttribute('stroke', '#00BFFF');
-    path.setAttribute('stroke-width', '2');
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke-linecap', 'round');
-
-    svgContainer.appendChild(path);
-  }
-
-  // -------- Navigation between stages --------
-  document.getElementById('toStage2').addEventListener('click', () => {
-    if (selectedDivisionWinners.some(t => !t)) return; // safety check
-    stage1.style.display = 'none';
-    stage2.style.display = 'block';
-    renderStage2();
-    checkStage2Complete();
-  });
-
-  document.getElementById('backToStage1').addEventListener('click', () => {
-    stage2.style.display = 'none';
-    stage1.style.display = 'block';
-  });
-
-  document.getElementById('toStage3').addEventListener('click', () => {
-    if (selectedWildcards.length !== 5) return;
-    stage2.style.display = 'none';
-    stage3.style.display = 'block';
-    renderBracket();
-  });
-
-  document.getElementById('backToStage2').addEventListener('click', () => {
-    stage3.style.display = 'none';
-    stage2.style.display = 'block';
-  });
-
-  // Initial rendering
-  renderStage1();
-  checkStage1Complete();
-
-  // Resize SVG container on window resize to reposition lines properly
-  function resizeSVG() {
-    svgContainer.style.width = stage3.querySelector('.bracket-container').offsetWidth + 'px';
-    svgContainer.style.height = stage3.querySelector('.bracket-container').offsetHeight + 'px';
-    drawConnectorLines();
-  }
-  window.addEventListener('resize', () => {
-    if (stage3.style.display === 'block') {
-      resizeSVG();
-    }
-  });
-
-  // After bracket is rendered, set SVG container size and draw lines
-  function renderBracket() {
-    // Clear rounds
-    divisionalRoundEl.innerHTML = '';
-    conferenceRoundEl.innerHTML = '';
-    championshipRoundEl.innerHTML = '';
-
-    // Build divisional round
-    bracketData.divisional = [
-      [selectedDivisionWinners[0], selectedWildcards[0]],
-      [selectedDivisionWinners[1], selectedWildcards[1]],
-      [selectedDivisionWinners[2], selectedWildcards[2]],
-      [selectedWildcards[3], selectedWildcards[4]],
-    ];
-
-    // Prepare conference and championship arrays if undefined
-    if (!Array.isArray(bracketData.conference[0])) bracketData.conference = [[], []];
-    if (!bracketData.championship[0]) bracketData.championship = [null];
-
-    // Render divisional
-    bracketData.divisional.forEach((teams, idx) => {
-      divisionalRoundEl.appendChild(createMatchup(teams[0], teams[1], idx, 'divisional'));
-    });
-
-    // Render conference
-    bracketData.conference.forEach((teams, idx) => {
-      const t1 = Array.isArray(teams) ? teams[0] || null : null;
-      const t2 = Array.isArray(teams) ? teams[1] || null : null;
+      const t1 = Array.isArray(matchupTeams) ? matchupTeams[0] || null : null;
+      const t2 = Array.isArray(matchupTeams) ? matchupTeams[1] || null : null;
       conferenceRoundEl.appendChild(createMatchup(t1, t2, idx, 'conference'));
     });
 
-    // Render championship
     const champTeams = bracketData.championship[0] ? [bracketData.championship[0], null] : [null, null];
     championshipRoundEl.appendChild(createMatchup(champTeams[0], champTeams[1], 0, 'championship'));
 
-    // Update champion display
     if (championEl.dataset.name) {
       // already set
     } else if (bracketData.championship[0]) {
@@ -778,14 +529,35 @@
       championEl.innerHTML = '<span>?</span>';
       delete championEl.dataset.name;
     }
-
-    // Resize and draw connector lines after a short delay for layout to settle
-    setTimeout(() => {
-      svgContainer.style.width = stage3.querySelector('.bracket-container').offsetWidth + 'px';
-      svgContainer.style.height = stage3.querySelector('.bracket-container').offsetHeight + 'px';
-      drawConnectorLines();
-    }, 50);
   }
+
+  // Navigation buttons
+  toStage2Btn.addEventListener('click', () => {
+    if (selectedDivisionWinners.some(t => !t)) return;
+    stage1.style.display = 'none';
+    stage2.style.display = 'block';
+    renderStage2();
+    checkStage2Complete();
+  });
+  backToStage1Btn.addEventListener('click', () => {
+    stage2.style.display = 'none';
+    stage1.style.display = 'block';
+  });
+  toStage3Btn.addEventListener('click', () => {
+    if (selectedWildcards.length !== 5) return;
+    stage2.style.display = 'none';
+    stage3.style.display = 'block';
+    renderBracket();
+  });
+  backToStage2Btn.addEventListener('click', () => {
+    stage3.style.display = 'none';
+    stage2.style.display = 'block';
+  });
+
+  // Initial render and check
+  renderStage1();
+  checkStage1Complete();
+
 })();
 </script>
 
