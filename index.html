@@ -121,11 +121,6 @@
     align-items: center;
   }
 
-  .brackets {
-    display: flex;
-    position: relative;
-  }
-
   .bracket-header {
     display: flex;
     margin-bottom: 10px;
@@ -135,21 +130,75 @@
     width: 184px;
     text-align: center;
     font-size: 18px;
+    font-weight: 600;
+  }
+
+  .brackets {
+    display: flex;
+    position: relative;
+    gap: 40px;
   }
 
   .round {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-right: 40px;
     position: relative;
   }
 
   .matchup {
     margin: 30px 0;
     position: relative;
+    width: 144px;
   }
 
+  /* Connecting lines container */
+  .round:not(:last-child) .matchup {
+    --line-color: #00BFFF;
+  }
+
+  /* Lines between rounds horizontally */
+  .matchup::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -40px;
+    width: 40px;
+    height: 3px;
+    background: var(--line-color, transparent);
+    transform: translateY(-50%);
+    z-index: 0;
+  }
+
+  /* Lines vertical connecting pairs */
+  .matchup:nth-child(2n)::before {
+    content: "";
+    position: absolute;
+    top: -15px;
+    left: 100%;
+    width: 3px;
+    height: 30px;
+    background: var(--line-color, transparent);
+    z-index: 0;
+  }
+
+  .matchup:nth-child(2n-1)::before {
+    content: "";
+    position: absolute;
+    top: 40px;
+    left: 100%;
+    width: 3px;
+    height: 30px;
+    background: var(--line-color, transparent);
+    z-index: 0;
+  }
+
+  /* Remove line for last round */
+  #championship .matchup::after {
+    display: none;
+  }
+
+  /* Team cards in bracket */
   .team-card-bracket {
     width: 144px;
     height: 40px;
@@ -160,6 +209,7 @@
     position: relative;
     box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
     transition: transform 0.2s, outline 0.2s;
+    z-index: 1;
   }
 
   .team-card-bracket img {
@@ -196,6 +246,7 @@
     margin-top: 0;
     text-align: center;
     width: 160px;
+    margin-left: 20px;
   }
 
   .champion-card {
@@ -275,13 +326,20 @@
   <h2>Playoff Bracket</h2>
 
   <div style="display: flex; align-items: flex-start; gap: 20px;">
-    <div class="brackets" style="display: flex; gap: 40px;">
-      <div class="round" id="divisional"></div>
-      <div class="round" id="conference"></div>
+    <div class="bracket-container">
+      <div class="bracket-header">
+        <div>Divisional</div>
+        <div>Conference</div>
+        <div>Championship</div>
+      </div>
+      <div class="brackets">
+        <div class="round" id="divisional"></div>
+        <div class="round" id="conference"></div>
 
-      <div style="display: flex; flex-direction: column; align-items: center;">
-        <div class="round" id="championship"></div>
-        <img src="https://res.cloudinary.com/de4q4iitx/image/upload/v1752185315/WBIII_id02n2.png" alt="World Bowl Logo" style="width: 144px; margin-top: 10px;" />
+        <div style="display: flex; flex-direction: column; align-items: center; position: relative;">
+          <div class="round" id="championship"></div>
+          <img src="https://res.cloudinary.com/de4q4iitx/image/upload/v1752185315/WBIII_id02n2.png" alt="World Bowl Logo" style="width: 144px; margin-top: 10px;" />
+        </div>
       </div>
     </div>
 
@@ -330,18 +388,23 @@
   let wildcardSelections = [];
 
   // Helper: render teams in a container for stage1 or wildcard selection
-  function renderTeams(containerId, teams, onClick, selectedNames = []) {
+  function renderTeams(containerId, teams, onClick, selectedNames = [], disabledNames = []) {
     const container = document.getElementById(containerId);
     container.innerHTML = "";
     teams.forEach(team => {
       const card = document.createElement("div");
       card.className = "team-card";
       if (selectedNames.includes(team.name)) card.classList.add("selected");
+      if (disabledNames.includes(team.name)) card.classList.add("disabled");
       card.innerHTML = `
         <img src="${team.logo}" alt="${team.name} logo" />
         <span>${team.name}</span>
       `;
-      card.onclick = () => onClick(team);
+      card.onclick = () => {
+        if (!disabledNames.includes(team.name)) {
+          onClick(team);
+        }
+      };
       container.appendChild(card);
     });
   }
@@ -375,20 +438,11 @@
   }
 
   function updateStage2UI() {
-    // Render wildcard list with selection highlight
-    renderTeams("wildcard-list", Object.values(allTeams).flat(), toggleWildcardSelection, wildcardSelections.map(t => t.name));
+    // Compose array of division winner names to disable from wildcard selection
+    const divisionWinnerNames = Object.values(divisionWinners).map(t => t.name);
 
-    // Disable already selected division winners from wildcard picks
-    const selectedNames = Object.values(divisionWinners).map(t => t.name);
-    const allCards = document.querySelectorAll("#wildcard-list .team-card");
-    allCards.forEach(card => {
-      const name = card.querySelector("span").textContent;
-      if (selectedNames.includes(name)) {
-        card.classList.add("disabled");
-      } else {
-        card.classList.remove("disabled");
-      }
-    });
+    // Render wildcard list with selection highlight and disabling division winners
+    renderTeams("wildcard-list", Object.values(allTeams).flat(), toggleWildcardSelection, wildcardSelections.map(t => t.name), divisionWinnerNames);
 
     // Enable continue if exactly 5 wildcards selected
     document.getElementById("toStage3").disabled = wildcardSelections.length !== 5;
@@ -433,19 +487,19 @@
     return matchup;
   }
 
+  // Render a round of bracket matchups
   function renderRound(roundId, teams) {
     const container = document.getElementById(roundId);
     container.innerHTML = "";
-    bracketData[roundId] = new Array(Math.ceil(teams.length / 2)).fill(null);
+    bracketData[roundId] = new Array(teams.length / 2).fill(null);
 
     for (let i = 0; i < teams.length; i += 2) {
-      const team1 = teams[i];
-      const team2 = teams[i + 1] || null;
-      const matchup = createMatchup(team1, team2, i / 2, roundId);
+      const matchup = createMatchup(teams[i], teams[i + 1], i / 2, roundId);
       container.appendChild(matchup);
     }
   }
 
+  // Select a winner in the bracket
   function selectTeam(el, matchIndex, roundId) {
     const container = document.getElementById(roundId);
     const matchup = container.querySelector(`.matchup[data-match="${matchIndex}"]`);
@@ -457,7 +511,6 @@
       logo: el.querySelector("img")?.src || ""
     };
 
-    // Check if round complete to build next
     const isComplete = bracketData[roundId].every(x => x !== null);
 
     if (isComplete) {
@@ -478,6 +531,7 @@
     }
   }
 
+  // Create next round from previous round winners
   function createNextRound(nextRoundId, previousWinners) {
     const container = document.getElementById(nextRoundId);
     container.innerHTML = "";
@@ -492,21 +546,15 @@
     }
   }
 
-  // Initialization and Navigation Logic
+  // Navigation & UI control
 
-  // Show/hide stages
   function showStage(stage) {
     document.getElementById("stage1").style.display = stage === 1 ? "block" : "none";
     document.getElementById("stage2").style.display = stage === 2 ? "block" : "none";
     document.getElementById("stage3").style.display = stage === 3 ? "block" : "none";
   }
 
-  // Initial render of Stage 1 teams
-  updateStage1UI();
-
-  // Button event handlers
   document.getElementById("toStage2").onclick = () => {
-    // Reset wildcards on entering Stage 2
     wildcardSelections = [];
     updateStage2UI();
     showStage(2);
@@ -517,7 +565,7 @@
   };
 
   document.getElementById("toStage3").onclick = () => {
-    // Compose 8 playoff teams: 3 division winners + 5 wildcards
+    // Compose playoff teams: 3 division winners + 5 wildcards = 8 teams
     const playoffTeams = [
       divisionWinners.east,
       divisionWinners.central,
@@ -525,17 +573,15 @@
       ...wildcardSelections
     ];
 
-    // Seed and arrange divisional matchups (4 matchups = 8 teams)
-    // For demo, just put teams in pairs in order:
     renderRound("divisional", playoffTeams);
 
-    // Clear conference and championship rounds
+    // Reset later rounds
     document.getElementById("conference").innerHTML = "";
     document.getElementById("championship").innerHTML = "";
     bracketData.conference = [];
     bracketData.championship = [];
 
-    // Clear champion display
+    // Reset champion display
     const champEl = document.getElementById("champion");
     champEl.innerHTML = "<span>?</span>";
 
@@ -546,6 +592,9 @@
     showStage(2);
   };
 
+  // Initial load
+  updateStage1UI();
 </script>
+
 </body>
 </html>
