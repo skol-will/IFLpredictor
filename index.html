@@ -173,14 +173,10 @@
   <div class="bracket-container" id="semifinals" style="display:none;"></div>
   <div class="bracket-container" id="final" style="display:none;"></div>
   <div class="champion-display" id="champion" style="display:none;"></div>
-  <button id="save-screenshot" style="display:none;">Save Bracket Screenshot</button>
+  <button id="generate-bracket" style="display:none;">Generate Bracket</button>
 </div>
 
-<!-- html2canvas CDN -->
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-
 <script>
-  // Data: teams by division
   const divisions = {
     "World East Division": [
       "Australia Whites",
@@ -208,14 +204,12 @@
     ]
   };
 
-  // State to store selections
   let divisionWinners = {};
   let wildcardTeams = [];
   let quarterFinalWinners = [];
   let semiFinalWinners = [];
   let finalWinner = null;
 
-  // Stage elements
   const stage1 = document.getElementById("stage-1");
   const toStage2Btn = document.getElementById("to-stage-2");
 
@@ -228,9 +222,8 @@
   const semifinalsDiv = document.getElementById("semifinals");
   const finalDiv = document.getElementById("final");
   const championDiv = document.getElementById("champion");
-  const saveScreenshotBtn = document.getElementById("save-screenshot");
+  const generateBracketBtn = document.getElementById("generate-bracket");
 
-  // Utility: create team card
   function createTeamCard(teamName) {
     const card = document.createElement("div");
     card.className = "team-card";
@@ -238,7 +231,6 @@
     return card;
   }
 
-  // Populate Stage 1
   function populateStage1() {
     Object.entries(divisions).forEach(([divisionName, teams]) => {
       const divisionGroup = [...document.querySelectorAll(".division-group")]
@@ -248,13 +240,11 @@
       teams.forEach(team => {
         const card = createTeamCard(team);
         card.addEventListener("click", () => {
-          // Toggle selection: only one per division
           if (divisionWinners[divisionName] === team) {
             delete divisionWinners[divisionName];
             card.classList.remove("selected");
           } else {
             divisionWinners[divisionName] = team;
-            // Deselect other cards in this division
             Array.from(list.children).forEach(c => c.classList.remove("selected"));
             card.classList.add("selected");
           }
@@ -276,10 +266,8 @@
     populateStage2();
   });
 
-  // Populate Stage 2 - Wildcards
   function populateStage2() {
     wildcardList.innerHTML = "";
-    // Get all teams except division winners
     const divisionWinnerSet = new Set(Object.values(divisionWinners));
     const allTeams = Object.values(divisions).flat();
     const remainingTeams = allTeams.filter(t => !divisionWinnerSet.has(t));
@@ -316,7 +304,6 @@
     setupBracket();
   });
 
-  // Stage 3: Bracket builder - horizontal layout
   function createMatchup(id, teams, onPick) {
     const container = document.createElement("div");
     container.className = "matchup";
@@ -341,7 +328,6 @@
       tOption.className = "team-option";
       tOption.textContent = team;
       tOption.addEventListener("click", () => {
-        // Select this team, deselect other
         const siblings = container.querySelectorAll(".team-option");
         siblings.forEach(s => s.classList.remove("selected"));
         tOption.classList.add("selected");
@@ -359,15 +345,8 @@
     finalDiv.innerHTML = "";
     championDiv.style.display = "none";
     championDiv.textContent = "";
-    saveScreenshotBtn.style.display = "none";
+    generateBracketBtn.style.display = "none";
 
-    // Combine teams
-    const quarterFinalTeams = [
-      ...Object.values(divisionWinners),
-      ...wildcardTeams
-    ];
-
-    // Sort division winners alphabetically for consistent pairing
     const dwSorted = Object.values(divisionWinners).sort();
     const wSorted = wildcardTeams.slice().sort();
 
@@ -400,12 +379,12 @@
       semifinalsDiv.style.display = "none";
       finalDiv.style.display = "none";
       championDiv.style.display = "none";
-      saveScreenshotBtn.style.display = "none";
+      generateBracketBtn.style.display = "none";
       return;
     }
 
     semifinalsDiv.style.display = "flex";
-    semifinalMatchups = [
+    const semifinalMatchups = [
       [quarterFinalWinners[0], quarterFinalWinners[1]],
       [quarterFinalWinners[2], quarterFinalWinners[3]]
     ];
@@ -424,14 +403,14 @@
 
     finalDiv.style.display = "none";
     championDiv.style.display = "none";
-    saveScreenshotBtn.style.display = "none";
+    generateBracketBtn.style.display = "none";
   }
 
   function updateFinal() {
     if (semiFinalWinners.includes(null)) {
       finalDiv.style.display = "none";
       championDiv.style.display = "none";
-      saveScreenshotBtn.style.display = "none";
+      generateBracketBtn.style.display = "none";
       return;
     }
 
@@ -446,34 +425,154 @@
     finalDiv.appendChild(matchupDiv);
 
     championDiv.style.display = "none";
-    saveScreenshotBtn.style.display = "none";
+    generateBracketBtn.style.display = "none";
   }
 
   function showChampion() {
     if (!finalWinner) return;
     championDiv.textContent = `Champion: ${finalWinner}`;
     championDiv.style.display = "block";
-    saveScreenshotBtn.style.display = "inline-block";
+    generateBracketBtn.style.display = "inline-block";
   }
 
-  saveScreenshotBtn.addEventListener("click", () => {
-    // Take screenshot of bracket container + champion text + button hidden temporarily
-    saveScreenshotBtn.style.display = "none";
-    html2canvas(stage3).then(canvas => {
-      // Restore button
-      saveScreenshotBtn.style.display = "inline-block";
+  // Generate static bracket page and open in new tab
+  generateBracketBtn.addEventListener("click", () => {
+    if (!finalWinner) {
+      alert("Please select the champion first!");
+      return;
+    }
 
-      // Create download link
-      const link = document.createElement("a");
-      link.download = "IFL_Playoff_Bracket.png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    });
+    // Prepare bracket data for static page
+    // We know quarterFinalWinners, semiFinalWinners, finalWinner
+
+    // We also want the original quarterfinal matchups to display on static page for clarity
+    // So reconstruct the quarterfinal matchups similarly:
+    const dwSorted = Object.values(divisionWinners).sort();
+    const wSorted = wildcardTeams.slice().sort();
+
+    const qfMatchups = [
+      [dwSorted[0], wSorted[0]],
+      [dwSorted[1], wSorted[1]],
+      [dwSorted[2], wSorted[2]],
+      [wSorted[3], wSorted[4]],
+    ];
+
+    // Static page HTML content as template literal
+    const staticHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IFL Playoff Bracket</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
+  body {
+    font-family: 'Orbitron', sans-serif;
+    background: #121212;
+    color: #eee;
+    margin: 0; padding: 20px;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh;
+  }
+  h1 {
+    color: #00ffff;
+    text-shadow: 0 0 12px #00ffff;
+    margin-bottom: 20px;
+  }
+  .bracket-container {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 30px;
+    justify-content: center;
+    overflow-x: auto;
+    width: 100%;
+    max-width: 100vw;
+  }
+  .round {
+    background: #222;
+    border-radius: 10px;
+    padding: 15px;
+    min-width: 220px;
+    box-shadow: 0 0 15px #00ffff;
+    flex-shrink: 0;
+  }
+  .round h2 {
+    text-align: center;
+    color: #00ffff;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+  }
+  .team {
+    background: #111;
+    margin: 8px 0;
+    padding: 10px;
+    border-radius: 7px;
+    text-align: center;
+    font-weight: 700;
+    border: 2px solid transparent;
+  }
+  .team.winner {
+    border-color: #00ffcc;
+    background: #004d4d;
+    color: #00ffcc;
+  }
+  .champion {
+    margin-top: 40px;
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #00ffcc;
+    text-shadow: 0 0 20px #00ffcc;
+    text-align: center;
+  }
+  /* Make sure it fits on mobile well */
+  @media (max-width: 600px) {
+    .bracket-container {
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .round {
+      min-width: 90vw;
+    }
+  }
+</style>
+</head>
+<body>
+<h1>IFL Playoff Bracket</h1>
+<div class="bracket-container">
+  <div class="round" id="quarterfinals-round">
+    <h2>Quarterfinals</h2>
+    ${qfMatchups.map((teams, i) => {
+      const winner = quarterFinalWinners[i];
+      return `<div class="team${teams[0] === winner ? ' winner' : ''}">${teams[0]}</div>
+              <div class="team${teams[1] === winner ? ' winner' : ''}">${teams[1]}</div><hr style="margin:12px 0; border-color:#00ffff66;">`;
+    }).join('')}
+  </div>
+  <div class="round" id="semifinals-round">
+    <h2>Semifinals</h2>
+    ${semiFinalWinners.map(team => {
+      return `<div class="team winner">${team}</div>`;
+    }).join('')}
+  </div>
+  <div class="round" id="final-round">
+    <h2>Final</h2>
+    <div class="team winner">${finalWinner}</div>
+  </div>
+</div>
+<div class="champion">Champion: ${finalWinner}</div>
+</body>
+</html>`;
+
+    // Open new tab with static bracket HTML
+    const blob = new Blob([staticHTML], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
   });
 
-  // Initial setup
+  // Initial
   populateStage1();
 </script>
 
 </body>
 </html>
+
