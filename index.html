@@ -95,53 +95,57 @@
     overflow-x: auto;
     padding-bottom: 1rem;
   }
-  .matchup {
+  .round {
     background: #222;
-    border-radius: 8px;
-    padding: 10px;
-    min-width: 220px;
-    box-shadow: 0 0 8px #00ffff;
+    border-radius: 10px;
+    padding: 8px;
+    min-width: 180px;
+    box-shadow: 0 0 15px #00ffff;
     flex-shrink: 0;
   }
-  .matchup h3 {
+  .round h3 {
     text-align: center;
     margin-bottom: 12px;
     color: #00ffff;
+    font-size: 1.1rem;
   }
-  .matchup .team-option {
+  .team {
     background: #111;
-    margin: 5px 0;
-    padding: 8px;
-    border-radius: 5px;
-    cursor: pointer;
-    border: 2px solid transparent;
+    margin: 6px 0;
+    padding: 6px;
+    border-radius: 6px;
     text-align: center;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: 2px solid transparent;
+    white-space: nowrap;
+    cursor: pointer;
   }
-  .matchup .team-option.selected {
+  .team.selected {
     border-color: #00ffff;
     background: #004d4d;
     color: #00ffff;
   }
-  .champion-display {
-    font-size: 2rem;
-    font-weight: 700;
+  .champion {
+    margin-top: 20px;
+    font-size: 1.6rem;
+    font-weight: 900;
     color: #00ffcc;
+    text-shadow: 0 0 20px #00ffcc;
     text-align: center;
-    margin-top: 2rem;
-    text-shadow: 0 0 10px #00ffcc;
   }
   @media (max-width: 480px) {
     .team-card {
       min-width: 100%;
     }
-    .matchup {
-      min-width: 180px;
+    .round {
+      min-width: 90vw;
     }
   }
 </style>
 </head>
 <body>
+
 <header>IFL Playoff Predictor</header>
 
 <div id="stage-1" class="stage">
@@ -172,7 +176,7 @@
   <div class="bracket-container" id="quarterfinals"></div>
   <div class="bracket-container" id="semifinals" style="display:none;"></div>
   <div class="bracket-container" id="final" style="display:none;"></div>
-  <div class="champion-display" id="champion" style="display:none;"></div>
+  <div class="champion" id="champion" style="display:none;"></div>
   <button id="generate-bracket" style="display:none;">Generate Bracket</button>
 </div>
 
@@ -206,17 +210,20 @@
 
   let divisionWinners = {};
   let wildcardTeams = [];
-  let quarterFinalWinners = [];
-  let semiFinalWinners = [];
+  let quarterFinalWinners = [null, null, null, null];
+  let semiFinalWinners = [null, null];
   let finalWinner = null;
 
+  // Stage 1 Elements
   const stage1 = document.getElementById("stage-1");
   const toStage2Btn = document.getElementById("to-stage-2");
 
+  // Stage 2 Elements
   const stage2 = document.getElementById("stage-2");
   const wildcardList = document.getElementById("wildcard-list");
   const toStage3Btn = document.getElementById("to-stage-3");
 
+  // Stage 3 Elements
   const stage3 = document.getElementById("stage-3");
   const quarterfinalsDiv = document.getElementById("quarterfinals");
   const semifinalsDiv = document.getElementById("semifinals");
@@ -224,6 +231,7 @@
   const championDiv = document.getElementById("champion");
   const generateBracketBtn = document.getElementById("generate-bracket");
 
+  // Helpers
   function createTeamCard(teamName) {
     const card = document.createElement("div");
     card.className = "team-card";
@@ -304,9 +312,10 @@
     setupBracket();
   });
 
+  // Create matchup UI block with clickable teams
   function createMatchup(id, teams, onPick) {
     const container = document.createElement("div");
-    container.className = "matchup";
+    container.className = "round";
     container.id = id;
 
     const titleMap = {
@@ -325,10 +334,10 @@
 
     teams.forEach(team => {
       const tOption = document.createElement("div");
-      tOption.className = "team-option";
+      tOption.className = "team";
       tOption.textContent = team;
       tOption.addEventListener("click", () => {
-        const siblings = container.querySelectorAll(".team-option");
+        const siblings = container.querySelectorAll(".team");
         siblings.forEach(s => s.classList.remove("selected"));
         tOption.classList.add("selected");
         onPick(team);
@@ -350,7 +359,7 @@
     const dwSorted = Object.values(divisionWinners).sort();
     const wSorted = wildcardTeams.slice().sort();
 
-    let qfMatchups = [
+    const qfMatchups = [
       [dwSorted[0], wSorted[0]],
       [dwSorted[1], wSorted[1]],
       [dwSorted[2], wSorted[2]],
@@ -384,12 +393,13 @@
     }
 
     semifinalsDiv.style.display = "flex";
+    semifinalsDiv.innerHTML = "";
+
     const semifinalMatchups = [
       [quarterFinalWinners[0], quarterFinalWinners[1]],
       [quarterFinalWinners[2], quarterFinalWinners[3]]
     ];
 
-    semifinalsDiv.innerHTML = "";
     semiFinalWinners = [null, null];
 
     semifinalMatchups.forEach((teams, idx) => {
@@ -416,7 +426,6 @@
 
     finalDiv.style.display = "flex";
     finalDiv.innerHTML = "";
-    finalWinner = null;
 
     const matchupDiv = createMatchup("final", semiFinalWinners, (winner) => {
       finalWinner = winner;
@@ -435,7 +444,7 @@
     generateBracketBtn.style.display = "inline-block";
   }
 
-  // Generate static bracket page and open in new tab
+  // Generate static bracket page and open in new tab, fully scaled to fit iPhone 14 width & height
   generateBracketBtn.addEventListener("click", () => {
     if (!finalWinner) {
       alert("Please select the champion first!");
@@ -451,6 +460,26 @@
       [dwSorted[2], wSorted[2]],
       [wSorted[3], wSorted[4]],
     ];
+
+    // Prepare semifinal and final winners from current selections:
+    // We know quarterFinalWinners, semiFinalWinners, and finalWinner from current selections
+    // To show the bracket fully "filled", use the winners from picks if available, else show teams normally
+
+    // Helper function to create rounds html:
+    function roundHTML(title, matchups, winners = []) {
+      return `
+      <div class="round">
+        <h2>${title}</h2>
+        ${matchups.map((teams, i) => {
+          const w = winners[i];
+          return `
+            <div class="team${teams[0] === w ? " selected" : ""}">${teams[0]}</div>
+            <div class="team${teams[1] === w ? " selected" : ""}">${teams[1]}</div>
+            <hr style="border-color:#00ffff66; margin:10px 0;">
+          `;
+        }).join("")}
+      </div>`;
+    }
 
     const staticHTML = `
 <!DOCTYPE html>
@@ -490,116 +519,87 @@
     background: #222;
     border-radius: 10px;
     padding: 8px;
-    min-width: 180px;
+    min-width: 160px;
     box-shadow: 0 0 15px #00ffff;
     flex-shrink: 0;
+    height: 100%;
+    overflow-y: auto;
   }
   .round h2 {
     text-align: center;
     color: #00ffff;
-    margin-bottom: 10px;
-    font-size: 1.1rem;
+    margin-bottom: 12px;
+    font-size: 1.2rem;
   }
   .team {
     background: #111;
-    margin: 6px 0;
+    margin: 5px 0;
     padding: 6px;
     border-radius: 6px;
     text-align: center;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 1rem;
     border: 2px solid transparent;
     white-space: nowrap;
   }
-  .team.winner {
-    border-color: #00ffcc;
+  .team.selected {
+    border-color: #00ffff;
     background: #004d4d;
-    color: #00ffcc;
+    color: #00ffff;
   }
   .champion {
     margin-top: 15px;
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     font-weight: 900;
     color: #00ffcc;
-    text-shadow: 0 0 20px #00ffcc;
     text-align: center;
-  }
-  @media (max-width: 480px) {
-    .bracket-container {
-      flex-wrap: wrap;
-      height: auto;
-      justify-content: center;
-      gap: 10px;
-      padding-bottom: 15px;
-      transform: none !important;
-    }
-    .round {
-      min-width: 90vw;
-      padding: 10px;
-    }
-    .round h2 {
-      font-size: 1.2rem;
-    }
-    .team {
-      font-size: 1.1rem;
-      padding: 10px;
-    }
-    .champion {
-      font-size: 2rem;
-      margin-top: 25px;
-    }
+    text-shadow: 0 0 15px #00ffcc;
   }
 </style>
 </head>
 <body>
 <h1>IFL Playoff Bracket</h1>
-<div class="bracket-container" id="bracketContainer">
-  <div class="round" id="quarterfinals-round">
-    <h2>Quarterfinals</h2>
-    ${qfMatchups.map((teams, i) => {
-      const winner = quarterFinalWinners[i];
-      return `<div class="team${teams[0] === winner ? ' winner' : ''}">${teams[0]}</div>
-              <div class="team${teams[1] === winner ? ' winner' : ''}">${teams[1]}</div><hr style="margin:10px 0; border-color:#00ffff66;">`;
-    }).join('')}
-  </div>
-  <div class="round" id="semifinals-round">
-    <h2>Semifinals</h2>
-    ${semiFinalWinners.map(team => `<div class="team winner">${team}</div>`).join('')}
-  </div>
-  <div class="round" id="final-round">
+<div class="bracket-container">
+  ${roundHTML("Quarterfinals", qfMatchups, quarterFinalWinners)}
+  ${roundHTML("Semifinals", [
+    [quarterFinalWinners[0], quarterFinalWinners[1]],
+    [quarterFinalWinners[2], quarterFinalWinners[3]]
+  ], semiFinalWinners)}
+  <div class="round">
     <h2>Final</h2>
-    <div class="team winner">${finalWinner}</div>
+    <div class="team selected">${finalWinner}</div>
   </div>
 </div>
 <div class="champion">Champion: ${finalWinner}</div>
-
 <script>
-  function scaleBracket() {
-    const container = document.getElementById('bracketContainer');
+  // Scale bracket to fit iPhone 14 viewport width and height without scroll
+  function scale() {
+    const container = document.querySelector('.bracket-container');
     const vw = window.innerWidth;
-    const vh = window.innerHeight - 70;
+    const vh = window.innerHeight - 80;
     const rect = container.getBoundingClientRect();
+
     const scaleX = vw / rect.width;
     const scaleY = vh / rect.height;
-    const scale = Math.min(scaleX, scaleY, 1);
-    container.style.transform = 'scale(' + scale + ')';
-  }
-  window.addEventListener('resize', scaleBracket);
-  window.addEventListener('load', scaleBracket);
-</script>
+    const scaleFactor = Math.min(scaleX, scaleY, 1);
 
+    container.style.transform = 'scale(' + scaleFactor + ')';
+  }
+  window.addEventListener('resize', scale);
+  window.addEventListener('load', scale);
+</script>
 </body>
 </html>
 `;
 
-    // Open new tab with static bracket HTML
     const blob = new Blob([staticHTML], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
   });
 
-  // Initial load
+  // Initialize
   populateStage1();
+
 </script>
 
 </body>
